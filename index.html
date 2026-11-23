@@ -1,0 +1,94 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>*{box-sizing:border-box}body{margin:0}[hidden]{display:none!important}</style><title>V7 Break the Mold</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;800&family=Lalezar&display=swap">
+<style>
+/* Layout: full-screen camera/canvas stage with one overlay panel at a time. Single dark look by design. */
+:root{color-scheme:dark;--bg:#191c28;--fg:#fff;--plaster:#f0ebdf;--ink:#1d2030;--room:#1f8f6b;--f:"Archivo",Arial,sans-serif;--d:"Lalezar","Archivo",Arial,sans-serif}
+html,body{height:100%}body{background:var(--bg);color:var(--fg);font:500 1rem/1.5 var(--f);overflow:hidden}
+#app{position:relative;width:100%;height:100%;max-width:520px;margin:0 auto;overflow:hidden}
+#v,#c,#bgimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}#c{touch-action:none}
+#top{position:absolute;inset:0 0 auto;display:flex;justify-content:space-between;gap:8px;padding:12px max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px));z-index:3}
+#top button{background:#0008;color:#fff;border:0;border-radius:20px;padding:10px 16px;font:800 .9rem var(--f);min-height:44px}
+#ui{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;justify-content:flex-end;padding:72px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px));gap:12px;pointer-events:none;overflow-y:auto}
+#ui>*{pointer-events:auto}#ui.full{background:var(--bg);justify-content:flex-start}
+h1{font:400 2.5rem/1.15 var(--d);margin:0}h2{font:400 1.9rem/1.2 var(--d);margin:0}p{margin:0}
+.card{background:#fff;color:var(--ink);border-radius:16px;padding:18px;display:grid;gap:10px}
+.btn{border:0;border-radius:26px;min-height:52px;padding:0 20px;font:800 1.05rem var(--f);background:var(--room);color:#fff;cursor:pointer}.btn.o{background:none;color:inherit;border:2px solid currentColor}
+label.btn{display:grid;place-items:center}label input{position:absolute;opacity:0;width:1px;height:1px}
+.hint{align-self:center;text-align:center;background:#000a;border-radius:20px;padding:10px 18px;font-weight:800;pointer-events:none!important}
+#ring{width:min(100%,300px);margin:0 auto}.list{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.list button{border:0;border-radius:14px;min-height:60px;color:#fff;font:800 1rem var(--f);text-align:start;padding:10px 14px;cursor:pointer}.list small{display:block;font-weight:500}
+.foot{font-size:.82rem;color:#b9bfd0}button:focus-visible,label:focus-within{outline:3px solid #fff;outline-offset:2px}
+</style>
+</head><body><div id="app"><video id="v" playsinline muted hidden></video><img id="bgimg" alt="" hidden><canvas id="c"></canvas>
+<div id="top"><button id="home">☰</button><button id="lang">عربي</button></div><div id="ui" aria-live="polite"></div></div>
+<script>
+const FL=[
+{k:'pomegranate',n:['Pomegranate','رمان'],c:'#b3193f',g:'beat',t:['Tap when the ring closes','دوس لما الدايرة تقفل'],f:['V7 says its drinks have no caffeine.','V7 بتقول إن مشروباتها من غير كافيين.']},
+{k:'pina',n:['Piña Colada','بينا كولادا'],c:'#b86f10',g:'pop',t:['Pop the coconuts','فرقع جوز الهند'],f:['V7 says its drinks have no preservatives.','V7 بتقول إن مشروباتها من غير مواد حافظة.']},
+{k:'pineapple',n:['Pineapple','أناناس'],c:'#9c8412',g:'catch',t:['Drag to catch the slices','اسحب والقط الشرايح'],f:['V7 says it uses 100% natural flavours.','V7 بتقول إن نكهاتها طبيعية 100%.']},
+{k:'blueberry',n:['Blueberry','بلوبيري'],c:'#3a3f9e',g:'stars',t:['Connect the stars in order','وصّل النجوم بالترتيب'],f:['V7 was first exported before reaching Egyptian shelves in late 2023.','V7 اتصدّرت الأول، وبعدها نزلت السوق المصري في آخر 2023.']},
+{k:'mint',n:['Lemon Mint','ليمون نعناع'],c:'#1f8f6b',g:'breath',t:['Hold while it grows. Let go as it shrinks','دوس وهي بتكبر، وسيب وهي بتصغر'],f:['V7 says its drinks contain honey.','V7 بتقول إن مشروباتها فيها عسل.']},
+{k:'cola',n:['V Cola','V كولا'],c:'#4a2a1c',g:'pop',t:['Pop the bubbles','فرقع الفقاعات'],f:['Work on V7 began in July 2021.','الشغل على V7 بدأ في يوليو 2021.']}];
+const S={sub:['Scan a can. Break it open. Collect all seven rooms.','صوّر العلبة، اكسر القالب، واجمع السبع غرف.'],pick:['No can nearby? Pick one:','مفيش علبة؟ اختار نكهة:'],cam:['Use your camera?','نستخدم الكاميرا؟'],priv:['The picture stays on your phone. Nothing is uploaded.','الصورة بتفضل على موبايلك، ومفيش حاجة بتترفع.'],start:['Open camera','افتح الكاميرا'],photo:['Take a photo of the can','صوّر العلبة'],no:['Play without camera','العب من غير كاميرا'],err:['The camera is not available here. Take a photo, or play without it.','الكاميرا مش متاحة هنا. صوّر صورة أو العب من غيرها.'],tap:['Tap to break the mold','دوس واكسر القالب'],play:['Play','العب'],stamp:['Stamp earned','كسبت الختم'],know:['Did you know?','كنت تعرف؟'],next:['My seven rooms','غرفي السبعة'],share:['Share','شارك'],open:['Open the seventh room','افتح الغرفة السابعة'],seven:['The Open Mold','القالب المفتوح'],vote:['You broke every mold. Vote for the next limited edition:','كسرت كل القوالب. اختار النكهة المحدودة الجاية:'],thanks:['Vote saved on this phone (demo).','صوتك اتحفظ على الموبايل ده (ديمو).'],reset:['Start over','ابدأ من الأول'],foot:['Student concept for SCM 434. Not affiliated with V7.','فكرة طلابية لـ SCM 434، ومش تابعة لـ V7.'],done:['opened','اتفتحت'],copied:['Text copied','النص اتنسخ']};
+let L=0,db={s:[],v:''},cur=null,mode='home',P=[],G={},shards=[],hits=0,ac,raf,last=0,cam=null,useBg=false;
+try{db=Object.assign(db,JSON.parse(localStorage.getItem('v7')||'{}'));L=+localStorage.getItem('v7l')||0}catch(e){}
+const $=i=>document.getElementById(i),cv=$('c'),x=cv.getContext('2d'),ui=$('ui'),rm=matchMedia('(prefers-reduced-motion:reduce)').matches;let W,H;
+const s=k=>S[k][L],save=()=>{try{localStorage.setItem('v7',JSON.stringify(db));localStorage.setItem('v7l',L)}catch(e){}};
+function size(){const r=$('app').getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;x.setTransform(d,0,0,d,0,0)}
+addEventListener('resize',size);
+function snd(fr,d=.15,ty='sine',v=.15){try{ac=ac||new AudioContext();ac.resume();const o=ac.createOscillator(),g=ac.createGain();o.type=ty;o.frequency.value=fr;g.gain.setValueAtTime(v,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d);o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
+function crackS(){try{ac=ac||new AudioContext();ac.resume();const n=ac.sampleRate*.18,b=ac.createBuffer(1,n,ac.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=(Math.random()*2-1)*Math.pow(1-i/n,4);const q=ac.createBufferSource(),g=ac.createGain();g.gain.value=.5;q.buffer=b;q.connect(g).connect(ac.destination);q.start()}catch(e){}if(navigator.vibrate)try{navigator.vibrate(40)}catch(e){}}
+function logo(){[392,440,494,523,587,659,784].forEach((f,i)=>setTimeout(()=>snd(f,.35,'triangle',.18),i*110))}
+function ring(){const n=[...FL.map(f=>[f.c,db.s.includes(f.k)]),['#e9c767',!!db.v]];return '<svg id="ring" viewBox="0 0 240 240" role="img" aria-label="'+n.filter(a=>a[1]).length+' / 7">'+n.map(([c,o],i)=>{const a=i*2*Math.PI/7,X=120+86*Math.sin(a),Y=120-86*Math.cos(a);return `<circle cx="${X}" cy="${Y}" r="26" fill="${o?c:'#2c3144'}" stroke="${o?'#fff':'#59607a'}" stroke-width="3"/><text x="${X}" y="${Y+7}" text-anchor="middle" fill="#fff" font-size="20" font-weight="800">${o?'✓':i+1}</text>`}).join('')+`<text x="120" y="130" text-anchor="middle" fill="#fff" font-size="32" font-weight="800">${n.filter(a=>a[1]).length}/7</text></svg>`}
+function show(h,full){ui.className=full?'full':'';ui.innerHTML=h;ui.dir=L?'rtl':'ltr';ui.lang=L?'ar':'en';$('lang').textContent=L?'English':'عربي';ui.scrollTop=0}
+function stopCam(){if(cam){cam.getTracks().forEach(t=>t.stop());cam=null}$('v').hidden=true}
+function home(){mode='home';cur=null;stopCam();$('bgimg').hidden=true;useBg=false;$('v').hidden=true;
+show(`<h1>${L?'اكسر القالب':'Break the mold'}</h1><p>${s('sub')}</p>${ring()}${db.s.length==6?`<button class="btn" style="--room:#8a6510" data-a="seven">${s('open')}</button>`:''}<p>${s('pick')}</p><div class="list">${FL.map(f=>`<button style="background:${f.c}" data-f="${f.k}">${f.n[L]}<small>${db.s.includes(f.k)?'✓ '+s('done'):'&nbsp;'}</small></button>`).join('')}</div><button class="btn o" data-a="reset">${s('reset')}</button><p class="foot">${s('foot')}</p>`,true)}
+function pick(k){const f=FL.find(a=>a.k===k);if(!f)return home();cur=f;mode='ask';document.documentElement.style.setProperty('--room',f.c);ask()}
+function ask(e){show(`<div class="card"><h2>${cur.n[L]}</h2><p><b>${e?s('err'):s('cam')}</b></p><p>${s('priv')}</p>${e?'':`<button class="btn" data-a="cam">${s('start')}</button>`}<label class="btn o"><input type="file" id="ph" accept="image/*" capture="environment">${s('photo')}</label><button class="btn o" data-a="nocam">${s('no')}</button></div>`)}
+async function openCam(){try{cam=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});if(mode!=='ask'){stopCam();return}$('v').srcObject=cam;await $('v').play();$('v').hidden=false;useBg=true;mold()}catch(e){stopCam();if(mode==='ask')ask(true)}}
+function mold(){mode='mold';hits=0;shards=[];const c=5,r=7,pt=[];for(let j=0;j<=r;j++)for(let i=0;i<=c;i++)pt.push([(i+(i&&i<c?(Math.random()-.5)*.7:0))/c,(j+(j&&j<r?(Math.random()-.5)*.7:0))/r]);
+for(let j=0;j<r;j++)for(let i=0;i<c;i++){const a=j*(c+1)+i,q=[pt[a],pt[a+1],pt[a+c+2],pt[a+c+1]];for(const t of Math.random()<.5?[[q[0],q[1],q[2]],[q[0],q[2],q[3]]]:[[q[0],q[1],q[3]],[q[1],q[2],q[3]]])shards.push({p:t,h:0,off:0,vy:0,vx:0,x:0,y:0,r:0,sh:.92+Math.random()*.08})}
+show(`<div class="hint">${s('tap')}</div>`)}
+function hit(px,py){const ww=Math.min(W*.82,340),hh=Math.min(H*.62,480),ox=(W-ww)/2,oy=(H-hh)/2;hits++;crackS();for(const a of shards){const mx=ox+ww*(a.p[0][0]+a.p[1][0]+a.p[2][0])/3,my=oy+hh*(a.p[0][1]+a.p[1][1]+a.p[2][1])/3,d=Math.hypot(mx-px,my-py);if(d<ww*.42)a.h++;if(!a.off&&(a.h>1&&d<ww*.3||hits>=6)){a.off=1;a.vx=(mx-px)*.02+(Math.random()-.5)*2;a.vy=-Math.random()*4}}
+if(hits===6){for(const a of shards)a.off=1;setTimeout(()=>mode==='mold'&&room(),900)}}
+function room(){mode='room';logo();P=Array.from({length:rm?10:38},()=>({x:Math.random()*W,y:Math.random()*H,r:3+Math.random()*14,v:.3+Math.random()*1.1}));
+show(`<div class="card"><h2>${cur.n[L]}</h2><p>${cur.t[L]}</p><button class="btn" data-a="play">${s('play')}</button></div>`)}
+function play(){mode='play';G={t:0,n:0,need:{beat:6,pop:10,catch:6,stars:6,breath:3}[cur.g],o:[],px:W/2,down:false,sp:0,ok:0};
+if(cur.g==='stars'){for(let i=0;i<6;i++)G.o.push({x:W*(.18+.64*((i*5)%6)/5),y:H*(.2+.1*i)})}
+show(`<div class="hint">${cur.t[L]}</div>`)}
+function tick(){G.n++;snd(392+G.n*55,.2,'triangle');if(G.n>=G.need&&mode==='play')win()}
+function win(){mode='win';if(!db.s.includes(cur.k))db.s.push(cur.k);save();logo();
+show(`<div class="card"><h2>${s('stamp')} ✓</h2><p><b>${s('know')}</b> ${cur.f[L]}</p><button class="btn" data-a="home">${s('next')}</button><button class="btn o" data-a="share">${s('share')}</button></div>`)}
+function seven(){mode='seven';show(`<h1>${s('seven')}</h1>${ring()}<p>${s('vote')}</p><div class="list">${[['Mint × Blueberry','نعناع × بلوبيري'],['Pomegranate × Cola','رمان × كولا'],['Pineapple × Mint','أناناس × نعناع'],['Piña × Pomegranate','بينا × رمان']].map((o,i)=>`<button style="background:#8a6510" data-v="${i}">${o[L]}<small>${db.v===String(i)?'✓':'&nbsp;'}</small></button>`).join('')}</div>${db.v?`<p>${s('thanks')}</p>`:''}<button class="btn o" data-a="home">${s('next')}</button>`,true)}
+async function share(b){const t='V7 '+cur.n[0]+' ✓ '+db.s.length+'/6 #اكسر_القالب';try{if(navigator.share){await navigator.share({text:t});return}throw 0}catch(e){if(e&&e.name==='AbortError')return;try{await navigator.clipboard.writeText(t);b.textContent=s('copied')}catch(_){b.textContent=t}}}
+ui.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const d=b.dataset;if(d.f)pick(d.f);else if(d.v){db.v=d.v;save();logo();seven()}else({cam:openCam,nocam:()=>mold(),play,home,seven,share:()=>share(b),reset:()=>{db={s:[],v:''};save();home()}})[d.a]?.()});
+ui.addEventListener('change',e=>{if(e.target.id==='ph'&&e.target.files[0]){$('bgimg').src=URL.createObjectURL(e.target.files[0]);$('bgimg').hidden=false;useBg=true;mold()}});
+$('home').onclick=home;$('lang').onclick=()=>{L=1-L;save();({home,ask:()=>ask(),seven,win:()=>win(),room:()=>room(),mold:()=>show(`<div class="hint">${s('tap')}</div>`),play:()=>show(`<div class="hint">${cur.t[L]}</div>`)})[mode]?.()};
+const pos=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
+ui.style.pointerEvents='none';
+cv.addEventListener('pointerdown',e=>{const[a,b]=pos(e);if(mode==='mold'&&hits<6)return hit(a,b);if(mode!=='play')return;G.down=true;G.px=a;
+if(cur.g==='pop'){const i=G.o.findIndex(o=>Math.hypot(o.x-a,o.y-b)<o.r+14);if(i>=0){G.o.splice(i,1);tick()}}
+if(cur.g==='beat'){const p=(G.t%1.6)/1.6;if(p>.6){if(!G.lk){G.lk=1;tick()}}}
+if(cur.g==='stars'){const o=G.o[G.n];if(o&&Math.hypot(o.x-a,o.y-b)<44)tick()}});
+cv.addEventListener('pointermove',e=>{if(mode==='play')G.px=pos(e)[0]});addEventListener('pointerup',()=>G.down=false);addEventListener('pointercancel',()=>G.down=false);
+function can(cx,cy,k,c){x.save();x.translate(cx,cy);x.scale(k,k);x.fillStyle='#c3c8d1';x.fillRect(-36,-112,72,10);x.fillStyle=c;x.beginPath();x.moveTo(-36,-104);x.lineTo(36,-104);x.lineTo(44,-88);x.lineTo(44,88);x.lineTo(36,102);x.lineTo(-36,102);x.lineTo(-44,88);x.lineTo(-44,-88);x.fill();x.strokeStyle='#fff6';x.lineWidth=3;x.stroke();x.fillStyle='#ffffff2e';x.fillRect(-44,-88,20,176);x.fillStyle='#fff';x.font='800 50px Archivo,Arial';x.textAlign='center';x.fillText('V7',0,18);x.restore()}
+function disc(a,b,r,f,st){x.beginPath();x.arc(a,b,Math.max(r,0),0,7);x.fillStyle=f;x.fill();if(st){x.strokeStyle=st;x.lineWidth=4;x.stroke()}}
+function frame(now){raf=requestAnimationFrame(frame);const dt=Math.min((now-last)/1000,.05);last=now;x.clearRect(0,0,W,H);if(!cur||mode==='home'||mode==='seven')return;
+const inRoom=mode==='room'||mode==='play'||mode==='win';
+if(!useBg&&!inRoom){x.fillStyle='#cfc7b5';x.fillRect(0,0,W,H)}
+if(inRoom){x.globalAlpha=useBg?.82:1;x.fillStyle=cur.c;x.fillRect(0,0,W,H);x.globalAlpha=1;for(const p of P){p.y-=rm?0:p.v;if(p.y<-20){p.y=H+20;p.x=Math.random()*W}disc(p.x,p.y,p.r,'#ffffff2b')}}
+if(mode==='ask'&&!useBg)can(W/2,H*.3,1.1,cur.c);
+if(mode==='mold'){if(!useBg||hits)can(W/2,H/2,1.4,cur.c);const ww=Math.min(W*.82,340),hh=Math.min(H*.62,480),ox=(W-ww)/2,oy=(H-hh)/2;for(const a of shards){if(a.off){a.vy+=14*dt;a.x+=a.vx*60*dt;a.y+=a.vy*60*dt;a.r+=a.vx*dt}x.save();x.translate(a.x,a.y);const v=Math.round(238*a.sh);x.fillStyle=`rgb(${v},${v-5},${v-18})`;x.beginPath();a.p.forEach((p,i)=>x[i?'lineTo':'moveTo'](ox+ww*p[0],oy+hh*p[1]));x.closePath();x.fill();x.strokeStyle=a.h?'#6d634e':`rgb(${v},${v-5},${v-18})`;x.lineWidth=a.h?2.5:1;x.stroke();x.restore()}}
+if(mode==='room'||mode==='win')can(W/2,H*.32,1.25,cur.c);
+if(mode==='play'){G.t+=dt;const cy=H*.42;
+if(cur.g==='beat'){const p=(G.t%1.6)/1.6;if(p<.1)G.lk=0;disc(W/2,cy,70,p>.6?'#fff':'#ffffff55');x.beginPath();x.arc(W/2,cy,70+110*(1-p),0,7);x.strokeStyle='#fff';x.lineWidth=5;x.stroke()}
+if(cur.g==='pop'){G.sp-=dt;if(G.sp<0&&G.o.length<8){G.sp=.45;G.o.push({x:40+Math.random()*(W-80),y:H+30,r:22+Math.random()*16})}for(const o of G.o){o.y-=90*dt;if(o.y<60)o.y=H+30;disc(o.x,o.y,o.r,cur.k==='pina'?'#5b3a22':'#ffffff55','#fff')}}
+if(cur.g==='catch'){G.sp-=dt;if(G.sp<0){G.sp=.8;G.o.push({x:40+Math.random()*(W-80),y:-20})}const by=H*.78;for(let i=G.o.length-1;i>=0;i--){const o=G.o[i];o.y+=170*dt;if(Math.abs(o.x-G.px)<70&&Math.abs(o.y-by)<26){G.o.splice(i,1);tick();continue}if(o.y>H+30)G.o.splice(i,1);else{disc(o.x,o.y,22,'#ffe27a','#fff');disc(o.x,o.y,7,cur.c)}}x.fillStyle='#fff';x.fillRect(G.px-60,by,120,14)}
+if(cur.g==='stars'){x.strokeStyle='#fff';x.lineWidth=3;x.beginPath();G.o.slice(0,G.n).forEach((o,i)=>x[i?'lineTo':'moveTo'](o.x,o.y));x.stroke();G.o.forEach((o,i)=>{disc(o.x,o.y,24,i<G.n?'#e9c767':i===G.n?'#fff':'#ffffff44');x.fillStyle=i<=G.n?'#1d2030':'#fff';x.font='800 18px Archivo,Arial';x.textAlign='center';x.fillText(i+1,o.x,o.y+6)})}
+if(cur.g==='breath'){const T=6,ph=G.t%T,up=ph<3;disc(W/2,cy,50+70*(up?ph/3:2-ph/3),'#ffffff33','#fff');if(up===G.down)G.ok+=dt;const c=Math.floor(G.t/T);if(c!==G.c){if(G.c!==undefined&&G.ok>2.4)tick();G.c=c;G.ok=0}x.fillStyle='#fff';x.font='800 24px Archivo,Arial';x.textAlign='center';x.fillText(up?(L?'شهيق':'Breathe in'):(L?'زفير':'Breathe out'),W/2,cy+8)}
+x.fillStyle='#ffffff44';x.fillRect(30,76,W-60,10);x.fillStyle='#fff';x.fillRect(30,76,(W-60)*Math.min(1,G.n/G.need),10)}}
+size();const h=location.hash.slice(1);h&&FL.some(f=>f.k===h)?pick(h):home();requestAnimationFrame(frame);
+</script>
+</body></html>
