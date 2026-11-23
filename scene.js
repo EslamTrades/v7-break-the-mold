@@ -16,7 +16,7 @@ const bot=lathe([[.0001,.03],[.1,.024],[.14,.004],[.155,0],[.168,.008],[.178,.02
 const tab=new T.Mesh(new T.TorusGeometry(.034,.011,10,28),al);tab.rotation.x=Math.PI/2;tab.scale.y=1.45;tab.position.set(0,.964,.035);
 const cap=lathe([[.0001,.998],[.185,.998],[.2,.994],[.2035,.984],[.204,.94],[.2025,.935]],new T.MeshPhysicalMaterial({color:0xf3f6f8,transparent:true,opacity:.3,roughness:.12,clearcoat:1,side:T.DoubleSide,depthWrite:false}));
 g.add(body,bot,top,tab,cap);
-if(drops){const r=seeded(5),n=260,geo=new T.SphereGeometry(1,10,8),mat=new T.MeshPhysicalMaterial({color:0xffffff,transparent:true,opacity:.42,roughness:.02,metalness:0,clearcoat:1,envMapIntensity:2}),m=new T.Object3D(),parts=[],im=bake?null:new T.InstancedMesh(geo,mat,n);
+if(drops){const r=seeded(5),n=bake?110:260,geo=new T.SphereGeometry(1,bake?7:10,bake?5:8),mat=new T.MeshPhysicalMaterial({color:0xffffff,transparent:true,opacity:.42,roughness:.02,metalness:0,clearcoat:1,envMapIntensity:2}),m=new T.Object3D(),parts=[],im=bake?null:new T.InstancedMesh(geo,mat,n);
 for(let i=0;i<n;i++){const a=r()*6.283,y=.1+r()*.79,s=.0025+Math.pow(r(),4)*.011;m.position.set(Math.sin(a)*.2,y,Math.cos(a)*.2);m.rotation.set(0,a,0);m.scale.set(s,s*(1+r()*.7),s*.5);m.updateMatrix();bake?parts.push(geo.clone().applyMatrix4(m.matrix)):im.setMatrixAt(i,m.matrix)}
 g.add(bake?new T.Mesh(mergeBufferGeometries(parts),new T.MeshStandardMaterial({color:0xffffff,transparent:true,opacity:.4,roughness:.03})):im)}
 g.traverse(o=>{if(o.isMesh){o.castShadow=!o.isInstancedMesh}});return g}
